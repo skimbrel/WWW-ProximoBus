@@ -4,8 +4,11 @@ use strict;
 use warnings;
 
 use Any::Moose;
+use Carp;
 use JSON;
 use LWP::UserAgent;
+
+our $VERSION = '0.01';
 
 has 'api_host' => ( is => 'rw', default => 'proximobus.appspot.com' );
 
@@ -18,11 +21,6 @@ has 'ua' => (
         $ua->max_redirect( 0 );
         $ua->timeout( 5 );
         return $ua;
-    },
-    trigger => sub {
-        my ($self, $ua, $attr) = @_;
-        $ua->timeout( 5 );
-        $ua->max_redirect( 0 );
     },
 );
 
@@ -44,7 +42,7 @@ sub get {
         return JSON::decode_json($res->content);
     }
     else {
-        die "HTTP error " . $res->code . ": " . $res->content;
+        die "ProximoBus HTTP error " . $res->code . ": " . $res->content;
     }
 }
 
@@ -57,6 +55,8 @@ sub agencies {
 sub agency {
     my $self = shift;
     my ($agency) = @_;
+    croak "need an agency" unless ($agency);
+
     my $path = "/agencies/$agency.json";
     return $self->get($path);
 }
@@ -64,6 +64,8 @@ sub agency {
 sub routes {
     my $self = shift;
     my ($agency) = @_;
+    croak "need an agency" unless ($agency);
+
     my $path = "/agencies/$agency/routes.json";
     return $self->get($path);
 }
@@ -71,6 +73,9 @@ sub routes {
 sub route {
     my $self = shift;
     my ($agency, $route) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
+
     my $path = "/agencies/$agency/routes/$route.json";
     return $self->get($path);
 }
@@ -78,6 +83,9 @@ sub route {
 sub stops_for_route {
     my $self = shift;
     my ($agency, $route) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
+
     my $path = "/agencies/$agency/routes/$route/stops.json";
     return $self->get($path);
 }
@@ -85,6 +93,8 @@ sub stops_for_route {
 sub runs {
     my $self = shift;
     my ($agency, $route) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
 
     my $path = "/agencies/$agency/routes/$route/runs.json";
     return $self->get($path);
@@ -93,6 +103,10 @@ sub runs {
 sub run {
     my $self = shift;
     my ($agency, $route, $run) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
+    croak "need a run" unless ($run);
+
     my $path = "/agencies/$agency/routes/$route/runs/$run.json";
     return $self->get($path);
 }
@@ -100,6 +114,10 @@ sub run {
 sub stops_for_run {
     my $self = shift;
     my ($agency, $route, $run) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
+    croak "need a run" unless (run);
+
     my $path = "/agencies/$agency/routes/$route/runs/$run/stops.json";
     return $self->get($path);
 }
@@ -107,6 +125,9 @@ sub stops_for_run {
 sub vehicles_for_route {
     my $self = shift;
     my ($agency, $route) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a route" unless ($route);
+
     my $path = "/agencies/$agency/routes/$route/vehicles.json";
     return $self->get($path);
 }
@@ -114,6 +135,9 @@ sub vehicles_for_route {
 sub stop {
     my $self = shift;
     my ($agency, $stop) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a stop" unless ($stop);
+
     my $path = "/agencies/$agency/stops/$stop.json";
     return $self->get($path);
 }
@@ -121,6 +145,9 @@ sub stop {
 sub routes_for_stop {
     my $self = shift;
     my ($agency, $stop) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a stop" unless ($stop);
+
     my $path = "/agencies/$agency/stops/$stop/routes.json";
     return $self->get($path);
 }
@@ -128,6 +155,9 @@ sub routes_for_stop {
 sub predictions_for_stop {
     my $self = shift;
     my ($agency, $stop) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a stop" unless ($stop);
+
     my $path = "/agencies/$agency/stops/$stop/predictions.json";
     return $self->get($path);
 }
@@ -135,6 +165,10 @@ sub predictions_for_stop {
 sub predictions_for_stop_by_route {
     my $self = shift;
     my ($agency, $stop, $route) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a stop" unless ($stop);
+    croak "need a route" unless ($route);
+
     my $path = "/agencies/$agency/stops/$stop/predictions/by-route/$route.json";
     return $self->get($path);
 }
@@ -142,6 +176,8 @@ sub predictions_for_stop_by_route {
 sub vehicles {
     my $self = shift;
     my ($agency) = @_;
+    croak "need an agency" unless ($agency);
+
     my $path = "/agencies/$agency/vehicles.json";
     return $self->get($path);
 }
@@ -149,6 +185,9 @@ sub vehicles {
 sub vehicle {
     my $self = shift;
     my ($agency, $vehicle) = @_;
+    croak "need an agency" unless ($agency);
+    croak "need a vehicle" unless ($vehicle);
+
     my $path = "/agencies/$agency/vehicles/$vehicle.json";
     return $self->get($path);
 }
@@ -161,13 +200,13 @@ WWW::ProximoBus - A simple client library for the ProximoBus API.
 
 =head1 SYNOPSIS
 
-my $proximo = WWW::ProximoBus->new();
-my $agencies = $proximo->agencies();
-my $agency = $agencies->{items}[0];
-my $routes = $proximo->routes($agency->{id});
-for my $route (@{$routes->{items}}) {
-    print $route->{id};
-}
+    my $proximo = WWW::ProximoBus->new();
+    my $agencies = $proximo->agencies();
+    my $agency = $agencies->{items}[0];
+    my $routes = $proximo->routes($agency->{id});
+    for my $route (@{$routes->{items}}) {
+        print $route->{id};
+    }
 
 =head1 DESCRIPTION
 
